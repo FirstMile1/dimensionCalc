@@ -48,6 +48,7 @@ window.Webflow.push(() => {
   // Function to calculate billed weight for USPS and FM (uses actual weight when ounces are selected)
   const calculateUSPSFirstmileBilledWeight = (cubicSize, actualWeight, dimWeight, isOunces) => {
     if (isOunces) {
+      console.log(`FM/USPS Billed Weight (Ounces Mode): Actual Weight = ${actualWeight} oz`);
       return actualWeight; // Use actual weight when ounces are selected for USPS and Firstmile
     }
     if (cubicSize > 1728) {
@@ -60,6 +61,7 @@ window.Webflow.push(() => {
   const calculateUPSFedExBilledWeight = (actualWeight, dimWeight, isOunces) => {
     if (isOunces) {
       actualWeight = actualWeight / 16; // Convert ounces to pounds
+      console.log(`UPS/FedEx Billed Weight (Ounces Mode): Actual Weight = ${actualWeight} lbs`);
     }
     return roundUpToNearestPound(Math.max(actualWeight, dimWeight));
   };
@@ -200,14 +202,15 @@ window.Webflow.push(() => {
       isPounds
     );
 
+    // Console log outputs to check the billing weights
     console.log(`Cubic Size: ${cubicSize}`);
     console.log(`Dimensional Weight (UPS): ${roundToNearestPound(dimWeightUPS)} lbs`);
     console.log(`Dimensional Weight (FedEx): ${roundToNearestPound(dimWeightFedEx)} lbs`);
     console.log(
       `Dimensional Weight (Firstmile/USPS): ${roundToNearestPound(dimWeightFirstmile)} lbs`
     );
-    console.log(`Billed Weight (USPS): ${billedWeightUSPS} lbs`);
-    console.log(`Billed Weight (Firstmile): ${billedWeightFirstmile} lbs`);
+    console.log(`Billed Weight (USPS): ${billedWeightUSPS} oz`);
+    console.log(`Billed Weight (Firstmile): ${billedWeightFirstmile} oz`);
     console.log(`Billed Weight (UPS): ${billedWeightUPS} lbs`);
     console.log(`Billed Weight (FedEx): ${billedWeightFedEx} lbs`);
   });
