@@ -51,7 +51,10 @@ window.Webflow.push(() => {
   };
 
   // Function to calculate UPS and FedEx billed weight (rounded up)
-  const calculateUPSFedExBilledWeight = (actualWeight, dimWeight) => {
+  const calculateUPSFedExBilledWeight = (actualWeight, dimWeight, isOunces) => {
+    if (isOunces) {
+      actualWeight = actualWeight / 16; // Convert ounces to pounds
+    }
     return roundUpToNearestPound(Math.max(actualWeight, dimWeight));
   };
 
@@ -90,6 +93,7 @@ window.Webflow.push(() => {
     }
 
     const isPounds = weightUnit === 'lbs';
+    const isOunces = weightUnit === 'oz';
 
     // Validation for length, width, height, and weight
     if (length === null || width === null || height === null || actualWeightInput === null) {
@@ -128,8 +132,16 @@ window.Webflow.push(() => {
       actualWeightInput,
       dimWeightFirstmile
     );
-    const billedWeightUPS = calculateUPSFedExBilledWeight(actualWeightInput, dimWeightUPS);
-    const billedWeightFedEx = calculateUPSFedExBilledWeight(actualWeightInput, dimWeightFedEx);
+    const billedWeightUPS = calculateUPSFedExBilledWeight(
+      actualWeightInput,
+      dimWeightUPS,
+      isOunces
+    );
+    const billedWeightFedEx = calculateUPSFedExBilledWeight(
+      actualWeightInput,
+      dimWeightFedEx,
+      isOunces
+    );
 
     // Output a simple result message
     result.textContent = 'Dimensional Weight has been calculated on the table.';
@@ -228,6 +240,7 @@ window.Webflow.push(() => {
     }
 
     const isPounds = weightUnit === 'lbs';
+    const isOunces = weightUnit === 'oz';
 
     // Update the actual weight for each carrier in real-time
     const actualWeight = parseInputValue(actualWeightInput.value);
@@ -259,8 +272,12 @@ window.Webflow.push(() => {
           actualWeight,
           dimWeightFirstmile
         );
-        const billedWeightUPS = calculateUPSFedExBilledWeight(actualWeight, dimWeightUPS);
-        const billedWeightFedEx = calculateUPSFedExBilledWeight(actualWeight, dimWeightFedEx);
+        const billedWeightUPS = calculateUPSFedExBilledWeight(actualWeight, dimWeightUPS, isOunces);
+        const billedWeightFedEx = calculateUPSFedExBilledWeight(
+          actualWeight,
+          dimWeightFedEx,
+          isOunces
+        );
 
         document.querySelector('#billed-weight-usps').textContent = formatActualWeight(
           billedWeightUSPS,
