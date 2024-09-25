@@ -1,4 +1,4 @@
-// Code Written by Milton Amaya - Firstmile 2023
+// Code Written by Milton Amaya - Firstmile 2024
 window.Webflow ||= [];
 window.Webflow.push(() => {
   console.log('Dimensional Weight Calculator initialized');
