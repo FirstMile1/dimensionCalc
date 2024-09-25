@@ -113,9 +113,8 @@ window.Webflow.push(() => {
     // Calculating dimensional weight for UPS and FedEx
     const dimWeightUPS = cubicSize / 139;
     const dimWeightFedEx = cubicSize / 139;
-    // FM/USPS don't need dimensional weight when ounces are selected
 
-    // Calculate billed weights for USPS, Firstmile, UPS, and FedEx
+    // FM/USPS don't need dimensional weight when ounces are selected
     const billedWeightUSPS = calculateUSPSFirstmileBilledWeight(actualWeightInput, isOunces);
     const billedWeightFirstmile = calculateUSPSFirstmileBilledWeight(actualWeightInput, isOunces);
     const billedWeightUPS = calculateUPSFedExBilledWeight(
