@@ -46,15 +46,13 @@ window.Webflow.push(() => {
   };
 
   // Function to calculate billed weight for USPS and FM (uses actual weight when ounces are selected)
-  const calculateUSPSFirstmileBilledWeight = (cubicSize, actualWeight, dimWeight, isOunces) => {
+  const calculateUSPSFirstmileBilledWeight = (actualWeight, isOunces) => {
     if (isOunces) {
       console.log(`FM/USPS Billed Weight (Ounces Mode): Actual Weight = ${actualWeight} oz`);
       return actualWeight; // Use actual weight when ounces are selected for USPS and Firstmile
     }
-    if (cubicSize > 1728) {
-      return Math.max(actualWeight, dimWeight);
-    }
-    return actualWeight;
+    // If pounds, logic continues here (e.g., dimensional weight logic)
+    return actualWeight; // Default behavior if not ounces (use actual weight in this case)
   };
 
   // Function to calculate UPS and FedEx billed weight (uses greater of actual vs dim)
@@ -112,25 +110,14 @@ window.Webflow.push(() => {
     // Calculating cubic size
     const cubicSize = length * width * height;
 
-    // Calculating dimensional weight for different carriers
+    // Calculating dimensional weight for UPS and FedEx
     const dimWeightUPS = cubicSize / 139;
     const dimWeightFedEx = cubicSize / 139;
-    const dimWeightFirstmile = cubicSize / 166;
-    const dimWeightUSPS = cubicSize / 166;
+    // FM/USPS don't need dimensional weight when ounces are selected
 
     // Calculate billed weights for USPS, Firstmile, UPS, and FedEx
-    const billedWeightUSPS = calculateUSPSFirstmileBilledWeight(
-      cubicSize,
-      actualWeightInput,
-      dimWeightUSPS,
-      isOunces
-    );
-    const billedWeightFirstmile = calculateUSPSFirstmileBilledWeight(
-      cubicSize,
-      actualWeightInput,
-      dimWeightFirstmile,
-      isOunces
-    );
+    const billedWeightUSPS = calculateUSPSFirstmileBilledWeight(actualWeightInput, isOunces);
+    const billedWeightFirstmile = calculateUSPSFirstmileBilledWeight(actualWeightInput, isOunces);
     const billedWeightUPS = calculateUPSFedExBilledWeight(
       actualWeightInput,
       dimWeightUPS,
@@ -179,7 +166,7 @@ window.Webflow.push(() => {
       isPounds
     );
     document.querySelector('#dim-weight-firstmile').textContent = formatDimWeight(
-      dimWeightFirstmile,
+      0, // Since FM doesn't need a dim weight in ounces mode
       actualWeightInput,
       isPounds
     );
@@ -193,7 +180,7 @@ window.Webflow.push(() => {
       isPounds
     );
     document.querySelector('#dim-weight-usps').textContent = formatDimWeight(
-      dimWeightUSPS,
+      0, // Since USPS doesn't need a dim weight in ounces mode
       actualWeightInput,
       isPounds
     );
@@ -206,9 +193,6 @@ window.Webflow.push(() => {
     console.log(`Cubic Size: ${cubicSize}`);
     console.log(`Dimensional Weight (UPS): ${roundToNearestPound(dimWeightUPS)} lbs`);
     console.log(`Dimensional Weight (FedEx): ${roundToNearestPound(dimWeightFedEx)} lbs`);
-    console.log(
-      `Dimensional Weight (Firstmile/USPS): ${roundToNearestPound(dimWeightFirstmile)} lbs`
-    );
     console.log(`Billed Weight (USPS): ${billedWeightUSPS} oz`);
     console.log(`Billed Weight (Firstmile): ${billedWeightFirstmile} oz`);
     console.log(`Billed Weight (UPS): ${billedWeightUPS} lbs`);
@@ -259,21 +243,9 @@ window.Webflow.push(() => {
         const cubicSize = length * width * height;
         const dimWeightUPS = cubicSize / 139;
         const dimWeightFedEx = cubicSize / 139;
-        const dimWeightFirstmile = cubicSize / 166;
-        const dimWeightUSPS = cubicSize / 166;
 
-        const billedWeightUSPS = calculateUSPSFirstmileBilledWeight(
-          cubicSize,
-          actualWeight,
-          dimWeightUSPS,
-          isOunces
-        );
-        const billedWeightFirstmile = calculateUSPSFirstmileBilledWeight(
-          cubicSize,
-          actualWeight,
-          dimWeightFirstmile,
-          isOunces
-        );
+        const billedWeightUSPS = calculateUSPSFirstmileBilledWeight(actualWeight, isOunces);
+        const billedWeightFirstmile = calculateUSPSFirstmileBilledWeight(actualWeight, isOunces);
         const billedWeightUPS = calculateUPSFedExBilledWeight(actualWeight, dimWeightUPS, isOunces);
         const billedWeightFedEx = calculateUPSFedExBilledWeight(
           actualWeight,
