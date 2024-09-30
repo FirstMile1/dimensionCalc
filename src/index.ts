@@ -1,3 +1,4 @@
+// Code Written by Milton Amaya - Firstmile 2024
 window.Webflow ||= [];
 window.Webflow.push(() => {
   console.log('Dimensional Weight Calculator initialized');
@@ -15,9 +16,9 @@ window.Webflow.push(() => {
     return isNaN(parsedValue) ? null : parsedValue;
   };
 
-  // Function to format actual weight (display in pounds or ounces)
-  const formatActualWeight = (weight, isPounds) => {
-    return isPounds ? `${Math.round(weight)} lbs` : `${Math.round(weight)} oz`;
+  // Function to display exact actual weight based on the unit
+  const displayExactActualWeight = (weight, isPounds) => {
+    return isPounds ? `${weight} lbs` : `${weight} oz`; // Display exact value in lbs or oz
   };
 
   // Function to convert ounces to pounds
@@ -25,7 +26,7 @@ window.Webflow.push(() => {
     return ounces / 16;
   };
 
-  // Function to round UP to the nearest pound (used for UPS and FedEx billed weight)
+  // Function to round up to the nearest pound
   const roundUpToNearestPound = (weight) => {
     return Math.ceil(weight);
   };
@@ -41,28 +42,31 @@ window.Webflow.push(() => {
     return null;
   };
 
-  // Function to calculate FM/USPS billed weight
-  const calculateUSPSFirstmileBilledWeight = (actualWeight, dimWeight, isOunces) => {
-    if (isOunces) {
-      console.log(`FM/USPS Billed Weight (Ounces Mode): Actual Weight = ${actualWeight} oz`);
-      return convertOuncesToPounds(actualWeight); // Convert ounces to pounds for display
-    }
-    // If pounds are selected, use the greater of actual weight or dim weight
-    return Math.max(actualWeight, dimWeight);
+  // Function to calculate dimensional weight
+  const calculateDimensionalWeight = (cubicSize, dimFactor) => {
+    return roundUpToNearestPound(cubicSize / dimFactor);
   };
 
-  // Function to calculate UPS and FedEx billed weight (uses greater of actual vs dim)
+  // Function to calculate USPS/Firstmile billed weight
+  const calculateUSPSFirstmileBilledWeight = (actualWeight, dimWeight, cubicSize, isPounds) => {
+    // Use the greater of actual weight or dim weight if conditions are met
+    if (cubicSize > 1728 && actualWeight > (isPounds ? 1 : convertOuncesToPounds(16))) {
+      return Math.max(actualWeight, dimWeight);
+    }
+    return actualWeight;
+  };
+
+  // Function to calculate UPS and FedEx billed weight
   const calculateUPSFedExBilledWeight = (actualWeight, dimWeight, isOunces) => {
     if (isOunces) {
-      actualWeight = convertOuncesToPounds(actualWeight); // Convert ounces to pounds
-      console.log(`UPS/FedEx Billed Weight (Ounces Mode): Actual Weight = ${actualWeight} lbs`);
+      actualWeight = convertOuncesToPounds(actualWeight); // Convert ounces to pounds for billing
     }
-    return roundUpToNearestPound(Math.max(actualWeight, dimWeight));
+    return roundUpToNearestPound(Math.max(actualWeight, dimWeight)); // Always use the greater value
   };
 
   // Event listener for form submission
   form.addEventListener('submit', (e) => {
-    // Prevent Form Submission
+    // Prevent form submission and propagation
     e.preventDefault();
     e.stopPropagation();
 
@@ -70,9 +74,9 @@ window.Webflow.push(() => {
     const length = parseInputValue(formData.get('length'));
     const width = parseInputValue(formData.get('width'));
     const height = parseInputValue(formData.get('height'));
-    const actualWeightInput = parseInputValue(formData.get('actual-weight'));
+    let actualWeightInput = parseInputValue(formData.get('actual-weight'));
 
-    // Determine whether the weight is in pounds or ounces based on the checkboxes
+    // Determine if weight is in pounds or ounces
     const weightUnit = getWeightUnit();
 
     if (!weightUnit) {
@@ -84,7 +88,7 @@ window.Webflow.push(() => {
     const isPounds = weightUnit === 'lbs';
     const isOunces = weightUnit === 'oz';
 
-    // Validation for length, width, height, and weight
+    // Validate input values
     if (length === null || width === null || height === null || actualWeightInput === null) {
       result.textContent =
         'Please provide valid inputs for length, width, height, and actual weight.';
@@ -92,7 +96,15 @@ window.Webflow.push(() => {
       return;
     }
 
-    // Validation check: length must be greater than or equal to both height and width
+    // Convert ounces to pounds if necessary
+    let displayedWeight = actualWeightInput;
+    if (isOunces) {
+      displayedWeight = actualWeightInput; // Keep the input value as ounces for display purposes
+      actualWeightInput = convertOuncesToPounds(actualWeightInput);
+    }
+    actualWeightInput = roundUpToNearestPound(actualWeightInput);
+
+    // Validation: length must be greater than or equal to both height and width
     if (length < width || length < height) {
       result.textContent = 'Error: Length must be greater than or equal to both height and width.';
       console.error(
@@ -101,37 +113,32 @@ window.Webflow.push(() => {
       return;
     }
 
-    // Calculating cubic size
+    // Calculate cubic size
     const cubicSize = length * width * height;
 
-    // Calculating dimensional weight for UPS and FedEx
-    const dimWeightUPS = cubicSize / 139;
-    const dimWeightFedEx = cubicSize / 139;
+    // Calculate dimensional weight for each carrier
+    const dimWeightUPS = calculateDimensionalWeight(cubicSize, 139);
+    const dimWeightFedEx = calculateDimensionalWeight(cubicSize, 139);
+    const dimWeightUSPS = isOunces ? 'N/A' : calculateDimensionalWeight(cubicSize, 166); // 'N/A' if ounces selected for FM/USPS
+    const dimWeightFirstmile = isOunces ? 'N/A' : calculateDimensionalWeight(cubicSize, 166); // 'N/A' if ounces selected for FM/USPS
 
-    // FM/USPS dimensional weight calculation
-    let dimWeightUSPS = 0;
-    let billedWeightUSPS;
-    let billedWeightFirstmile;
-    if (isPounds) {
-      // Calculate dimensional weight for FM and USPS if pounds are selected
-      dimWeightUSPS = cubicSize / 166;
-      billedWeightUSPS = calculateUSPSFirstmileBilledWeight(
-        actualWeightInput,
-        dimWeightUSPS,
-        isOunces
-      );
-      billedWeightFirstmile = calculateUSPSFirstmileBilledWeight(
-        actualWeightInput,
-        dimWeightUSPS,
-        isOunces
-      );
-    } else {
-      // If ounces are selected, skip dimensional weight calculation
-      billedWeightUSPS = calculateUSPSFirstmileBilledWeight(actualWeightInput, 0, isOunces);
-      billedWeightFirstmile = calculateUSPSFirstmileBilledWeight(actualWeightInput, 0, isOunces);
-    }
+    // **NEW: Always calculate Dimensional Weight for UPS and FedEx**
+    const displayedDimWeightUPS = `${dimWeightUPS} lbs`; // Show the dim weight for UPS
+    const displayedDimWeightFedEx = `${dimWeightFedEx} lbs`; // Show the dim weight for FedEx
 
-    // UPS and FedEx billed weight calculation
+    // Calculate billed weight for each carrier
+    const billedWeightUSPS = calculateUSPSFirstmileBilledWeight(
+      actualWeightInput,
+      dimWeightUSPS,
+      cubicSize,
+      isPounds
+    );
+    const billedWeightFirstmile = calculateUSPSFirstmileBilledWeight(
+      actualWeightInput,
+      dimWeightFirstmile,
+      cubicSize,
+      isPounds
+    );
     const billedWeightUPS = calculateUPSFedExBilledWeight(
       actualWeightInput,
       dimWeightUPS,
@@ -147,59 +154,42 @@ window.Webflow.push(() => {
     result.textContent = 'Dimensional Weight has been calculated on the table.';
 
     // Update the table with the actual weight, dimensional weight, and billed weight for each carrier
-    // Actual weight stays in pounds or ounces, but billed weight is always converted to pounds
-    document.querySelector('#actual-weight-ups').textContent = formatActualWeight(
-      actualWeightInput,
+    document.querySelector('#actual-weight-ups').textContent = displayExactActualWeight(
+      displayedWeight,
       isPounds
     );
-    document.querySelector('#dim-weight-ups').textContent = formatActualWeight(dimWeightUPS, true);
-    document.querySelector('#billed-weight-ups').textContent = formatActualWeight(
-      billedWeightUPS,
-      true
-    );
+    document.querySelector('#dim-weight-ups').textContent = displayedDimWeightUPS; // Always display Dim Weight for UPS
+    document.querySelector('#billed-weight-ups').textContent = `${billedWeightUPS} lbs`;
 
-    document.querySelector('#actual-weight-fedex').textContent = formatActualWeight(
-      actualWeightInput,
+    document.querySelector('#actual-weight-fedex').textContent = displayExactActualWeight(
+      displayedWeight,
       isPounds
     );
-    document.querySelector('#dim-weight-fedex').textContent = formatActualWeight(
-      dimWeightFedEx,
-      true
-    );
-    document.querySelector('#billed-weight-fedex').textContent = formatActualWeight(
-      billedWeightFedEx,
-      true
-    );
+    document.querySelector('#dim-weight-fedex').textContent = displayedDimWeightFedEx; // Always display Dim Weight for FedEx
+    document.querySelector('#billed-weight-fedex').textContent = `${billedWeightFedEx} lbs`;
 
-    document.querySelector('#actual-weight-firstmile').textContent = formatActualWeight(
-      actualWeightInput,
+    document.querySelector('#actual-weight-firstmile').textContent = displayExactActualWeight(
+      displayedWeight,
       isPounds
     );
-    document.querySelector('#dim-weight-firstmile').textContent = formatActualWeight(
-      dimWeightUSPS,
-      true
-    ); // Dim weight for pounds
-    document.querySelector('#billed-weight-firstmile').textContent = formatActualWeight(
-      billedWeightFirstmile,
-      true
-    );
+    document.querySelector('#dim-weight-firstmile').textContent = isOunces
+      ? 'N/A'
+      : `${dimWeightFirstmile} lbs`; // N/A if ounces
+    document.querySelector('#billed-weight-firstmile').textContent = `${billedWeightFirstmile} lbs`;
 
-    document.querySelector('#actual-weight-usps').textContent = formatActualWeight(
-      actualWeightInput,
+    document.querySelector('#actual-weight-usps').textContent = displayExactActualWeight(
+      displayedWeight,
       isPounds
     );
-    document.querySelector('#dim-weight-usps').textContent = formatActualWeight(
-      dimWeightUSPS,
-      true
-    ); // Dim weight for pounds
-    document.querySelector('#billed-weight-usps').textContent = formatActualWeight(
-      billedWeightUSPS,
-      true
-    );
+    document.querySelector('#dim-weight-usps').textContent = isOunces
+      ? 'N/A'
+      : `${dimWeightUSPS} lbs`; // N/A if ounces
+    document.querySelector('#billed-weight-usps').textContent = `${billedWeightUSPS} lbs`;
 
+    // Console log outputs for checking
     console.log(`Cubic Size: ${cubicSize}`);
-    console.log(`Dimensional Weight (UPS): ${roundUpToNearestPound(dimWeightUPS)} lbs`);
-    console.log(`Dimensional Weight (FedEx): ${roundUpToNearestPound(dimWeightFedEx)} lbs`);
+    console.log(`Dimensional Weight (UPS): ${dimWeightUPS} lbs`);
+    console.log(`Dimensional Weight (FedEx): ${dimWeightFedEx} lbs`);
     console.log(`Billed Weight (USPS): ${billedWeightUSPS} lbs`);
     console.log(`Billed Weight (Firstmile): ${billedWeightFirstmile} lbs`);
     console.log(`Billed Weight (UPS): ${billedWeightUPS} lbs`);
@@ -230,7 +220,7 @@ window.Webflow.push(() => {
     const isOunces = weightUnit === 'oz';
 
     if (actualWeight !== null) {
-      const formattedActualWeight = formatActualWeight(actualWeight, isPounds);
+      const formattedActualWeight = displayExactActualWeight(actualWeight, isPounds);
       document.querySelector('#actual-weight-ups').textContent = formattedActualWeight;
       document.querySelector('#actual-weight-fedex').textContent = formattedActualWeight;
       document.querySelector('#actual-weight-firstmile').textContent = formattedActualWeight;
@@ -243,17 +233,18 @@ window.Webflow.push(() => {
         const height = parseInputValue(heightInput.value);
         if (length !== null && width !== null && height !== null) {
           const cubicSize = length * width * height;
-          const dimWeightUSPS = cubicSize / 166;
-
+          const dimWeightUSPS = calculateDimensionalWeight(cubicSize, 166);
           const billedWeightUSPS = calculateUSPSFirstmileBilledWeight(
             actualWeight,
             dimWeightUSPS,
-            isOunces
+            cubicSize,
+            isPounds
           );
           const billedWeightFirstmile = calculateUSPSFirstmileBilledWeight(
             actualWeight,
             dimWeightUSPS,
-            isOunces
+            cubicSize,
+            isPounds
           );
 
           document.querySelector('#dim-weight-usps').textContent = `${dimWeightUSPS} lbs`;
@@ -267,6 +258,7 @@ window.Webflow.push(() => {
     }
   };
 
+  // Add event listeners to update the display as the user types
   document.querySelector('input[name="length"]').addEventListener('input', updateDisplay);
   document.querySelector('input[name="width"]').addEventListener('input', updateDisplay);
   document.querySelector('input[name="height"]').addEventListener('input', updateDisplay);

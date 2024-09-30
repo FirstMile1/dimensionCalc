@@ -1,1 +1,205 @@
-"use strict";(()=>{window.Webflow||(window.Webflow=[]);window.Webflow.push(()=>{console.log("Dimensional Weight Calculator initialized");let f=document.querySelector('[fs-element="form"]'),p=document.querySelector('[fs-element="result"]'),P=document.querySelector(".pounds-checkbox"),v=document.querySelector(".ounces-checkbox");if(!f||!p||!P||!v)return;let c=e=>{let t=parseFloat(e);return isNaN(t)?null:t},n=(e,t)=>t?`${Math.round(e)} lbs`:`${Math.round(e)} oz`,U=e=>e/16,C=e=>Math.ceil(e),E=()=>P.checked?"lbs":v.checked?"oz":null,a=(e,t,l)=>l?(console.log(`FM/USPS Billed Weight (Ounces Mode): Actual Weight = ${e} oz`),U(e)):Math.max(e,t),$=(e,t,l)=>(l&&(e=U(e),console.log(`UPS/FedEx Billed Weight (Ounces Mode): Actual Weight = ${e} lbs`)),C(Math.max(e,t)));f.addEventListener("submit",e=>{e.preventDefault(),e.stopPropagation();let t=new FormData(f),l=c(t.get("length")),g=c(t.get("width")),w=c(t.get("height")),o=c(t.get("actual-weight")),y=E();if(!y){p.textContent="Please select either pounds or ounces for the actual weight.",console.log("Error: Invalid weight unit selection. Please choose pounds or ounces.");return}let r=y==="lbs",i=y==="oz";if(l===null||g===null||w===null||o===null){p.textContent="Please provide valid inputs for length, width, height, and actual weight.",console.log("Error: Invalid input values.");return}if(l<g||l<w){p.textContent="Error: Length must be greater than or equal to both height and width.",console.error("Validation Error: Length must be greater than or equal to both height and width.");return}let s=l*g*w,m=s/139,S=s/139,u=0,d,h;r?(u=s/166,d=a(o,u,i),h=a(o,u,i)):(d=a(o,0,i),h=a(o,0,i));let b=$(o,m,i),W=$(o,S,i);p.textContent="Dimensional Weight has been calculated on the table.",document.querySelector("#actual-weight-ups").textContent=n(o,r),document.querySelector("#dim-weight-ups").textContent=n(m,!0),document.querySelector("#billed-weight-ups").textContent=n(b,!0),document.querySelector("#actual-weight-fedex").textContent=n(o,r),document.querySelector("#dim-weight-fedex").textContent=n(S,!0),document.querySelector("#billed-weight-fedex").textContent=n(W,!0),document.querySelector("#actual-weight-firstmile").textContent=n(o,r),document.querySelector("#dim-weight-firstmile").textContent=n(u,!0),document.querySelector("#billed-weight-firstmile").textContent=n(h,!0),document.querySelector("#actual-weight-usps").textContent=n(o,r),document.querySelector("#dim-weight-usps").textContent=n(u,!0),document.querySelector("#billed-weight-usps").textContent=n(d,!0),console.log(`Cubic Size: ${s}`),console.log(`Dimensional Weight (UPS): ${C(m)} lbs`),console.log(`Dimensional Weight (FedEx): ${C(S)} lbs`),console.log(`Billed Weight (USPS): ${d} lbs`),console.log(`Billed Weight (Firstmile): ${h} lbs`),console.log(`Billed Weight (UPS): ${b} lbs`),console.log(`Billed Weight (FedEx): ${W} lbs`)});let x=()=>{let e=document.querySelector('input[name="length"]'),t=document.querySelector('input[name="width"]'),l=document.querySelector('input[name="height"]'),g=document.querySelector('input[name="actual-weight"]'),w=document.querySelector("#length-display"),o=document.querySelector("#width-display"),y=document.querySelector("#height-display"),r=document.querySelector("#actual-weight-display");w.textContent=e.value||"0",o.textContent=t.value||"0",y.textContent=l.value||"0",r.textContent=g.value||"0";let i=c(g.value),s=E(),m=s==="lbs",S=s==="oz";if(i!==null){let u=n(i,m);if(document.querySelector("#actual-weight-ups").textContent=u,document.querySelector("#actual-weight-fedex").textContent=u,document.querySelector("#actual-weight-firstmile").textContent=u,document.querySelector("#actual-weight-usps").textContent=u,m){let d=c(e.value),h=c(t.value),b=c(l.value);if(d!==null&&h!==null&&b!==null){let q=d*h*b/166,F=a(i,q,S),D=a(i,q,S);document.querySelector("#dim-weight-usps").textContent=`${q} lbs`,document.querySelector("#dim-weight-firstmile").textContent=`${q} lbs`,document.querySelector("#billed-weight-usps").textContent=`${F} lbs`,document.querySelector("#billed-weight-firstmile").textContent=`${D} lbs`}}}};document.querySelector('input[name="length"]').addEventListener("input",x),document.querySelector('input[name="width"]').addEventListener("input",x),document.querySelector('input[name="height"]').addEventListener("input",x),document.querySelector('input[name="actual-weight"]').addEventListener("input",x)});})();
+"use strict";
+(() => {
+  // bin/live-reload.js
+  new EventSource(`${"http://localhost:3000"}/esbuild`).addEventListener("change", () => location.reload());
+
+  // src/index.ts
+  window.Webflow ||= [];
+  window.Webflow.push(() => {
+    console.log("Dimensional Weight Calculator initialized");
+    const form = document.querySelector('[fs-element="form"]');
+    const result = document.querySelector('[fs-element="result"]');
+    const poundsCheckbox = document.querySelector(".pounds-checkbox");
+    const ouncesCheckbox = document.querySelector(".ounces-checkbox");
+    if (!form || !result || !poundsCheckbox || !ouncesCheckbox)
+      return;
+    const parseInputValue = (value) => {
+      const parsedValue = parseFloat(value);
+      return isNaN(parsedValue) ? null : parsedValue;
+    };
+    const displayExactActualWeight = (weight, isPounds) => {
+      return isPounds ? `${weight} lbs` : `${weight} oz`;
+    };
+    const convertOuncesToPounds = (ounces) => {
+      return ounces / 16;
+    };
+    const roundUpToNearestPound = (weight) => {
+      return Math.ceil(weight);
+    };
+    const getWeightUnit = () => {
+      if (poundsCheckbox.checked) {
+        return "lbs";
+      }
+      if (ouncesCheckbox.checked) {
+        return "oz";
+      }
+      return null;
+    };
+    const calculateDimensionalWeight = (cubicSize, dimFactor) => {
+      return roundUpToNearestPound(cubicSize / dimFactor);
+    };
+    const calculateUSPSFirstmileBilledWeight = (actualWeight, dimWeight, cubicSize, isPounds) => {
+      if (cubicSize > 1728 && actualWeight > (isPounds ? 1 : convertOuncesToPounds(16))) {
+        return Math.max(actualWeight, dimWeight);
+      }
+      return actualWeight;
+    };
+    const calculateUPSFedExBilledWeight = (actualWeight, dimWeight, isOunces) => {
+      if (isOunces) {
+        actualWeight = convertOuncesToPounds(actualWeight);
+      }
+      return roundUpToNearestPound(Math.max(actualWeight, dimWeight));
+    };
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const formData = new FormData(form);
+      const length = parseInputValue(formData.get("length"));
+      const width = parseInputValue(formData.get("width"));
+      const height = parseInputValue(formData.get("height"));
+      let actualWeightInput = parseInputValue(formData.get("actual-weight"));
+      const weightUnit = getWeightUnit();
+      if (!weightUnit) {
+        result.textContent = "Please select either pounds or ounces for the actual weight.";
+        console.log("Error: Invalid weight unit selection. Please choose pounds or ounces.");
+        return;
+      }
+      const isPounds = weightUnit === "lbs";
+      const isOunces = weightUnit === "oz";
+      if (length === null || width === null || height === null || actualWeightInput === null) {
+        result.textContent = "Please provide valid inputs for length, width, height, and actual weight.";
+        console.log("Error: Invalid input values.");
+        return;
+      }
+      let displayedWeight = actualWeightInput;
+      if (isOunces) {
+        displayedWeight = actualWeightInput;
+        actualWeightInput = convertOuncesToPounds(actualWeightInput);
+      }
+      actualWeightInput = roundUpToNearestPound(actualWeightInput);
+      if (length < width || length < height) {
+        result.textContent = "Error: Length must be greater than or equal to both height and width.";
+        console.error(
+          "Validation Error: Length must be greater than or equal to both height and width."
+        );
+        return;
+      }
+      const cubicSize = length * width * height;
+      const dimWeightUPS = calculateDimensionalWeight(cubicSize, 139);
+      const dimWeightFedEx = calculateDimensionalWeight(cubicSize, 139);
+      const dimWeightUSPS = isOunces ? "N/A" : calculateDimensionalWeight(cubicSize, 166);
+      const dimWeightFirstmile = isOunces ? "N/A" : calculateDimensionalWeight(cubicSize, 166);
+      const displayedDimWeightUPS = `${dimWeightUPS} lbs`;
+      const displayedDimWeightFedEx = `${dimWeightFedEx} lbs`;
+      const billedWeightUSPS = calculateUSPSFirstmileBilledWeight(
+        actualWeightInput,
+        dimWeightUSPS,
+        cubicSize,
+        isPounds
+      );
+      const billedWeightFirstmile = calculateUSPSFirstmileBilledWeight(
+        actualWeightInput,
+        dimWeightFirstmile,
+        cubicSize,
+        isPounds
+      );
+      const billedWeightUPS = calculateUPSFedExBilledWeight(
+        actualWeightInput,
+        dimWeightUPS,
+        isOunces
+      );
+      const billedWeightFedEx = calculateUPSFedExBilledWeight(
+        actualWeightInput,
+        dimWeightFedEx,
+        isOunces
+      );
+      result.textContent = "Dimensional Weight has been calculated on the table.";
+      document.querySelector("#actual-weight-ups").textContent = displayExactActualWeight(
+        displayedWeight,
+        isPounds
+      );
+      document.querySelector("#dim-weight-ups").textContent = displayedDimWeightUPS;
+      document.querySelector("#billed-weight-ups").textContent = `${billedWeightUPS} lbs`;
+      document.querySelector("#actual-weight-fedex").textContent = displayExactActualWeight(
+        displayedWeight,
+        isPounds
+      );
+      document.querySelector("#dim-weight-fedex").textContent = displayedDimWeightFedEx;
+      document.querySelector("#billed-weight-fedex").textContent = `${billedWeightFedEx} lbs`;
+      document.querySelector("#actual-weight-firstmile").textContent = displayExactActualWeight(
+        displayedWeight,
+        isPounds
+      );
+      document.querySelector("#dim-weight-firstmile").textContent = isOunces ? "N/A" : `${dimWeightFirstmile} lbs`;
+      document.querySelector("#billed-weight-firstmile").textContent = `${billedWeightFirstmile} lbs`;
+      document.querySelector("#actual-weight-usps").textContent = displayExactActualWeight(
+        displayedWeight,
+        isPounds
+      );
+      document.querySelector("#dim-weight-usps").textContent = isOunces ? "N/A" : `${dimWeightUSPS} lbs`;
+      document.querySelector("#billed-weight-usps").textContent = `${billedWeightUSPS} lbs`;
+      console.log(`Cubic Size: ${cubicSize}`);
+      console.log(`Dimensional Weight (UPS): ${dimWeightUPS} lbs`);
+      console.log(`Dimensional Weight (FedEx): ${dimWeightFedEx} lbs`);
+      console.log(`Billed Weight (USPS): ${billedWeightUSPS} lbs`);
+      console.log(`Billed Weight (Firstmile): ${billedWeightFirstmile} lbs`);
+      console.log(`Billed Weight (UPS): ${billedWeightUPS} lbs`);
+      console.log(`Billed Weight (FedEx): ${billedWeightFedEx} lbs`);
+    });
+    const updateDisplay = () => {
+      const lengthInput = document.querySelector('input[name="length"]');
+      const widthInput = document.querySelector('input[name="width"]');
+      const heightInput = document.querySelector('input[name="height"]');
+      const actualWeightInput = document.querySelector('input[name="actual-weight"]');
+      const lengthDisplay = document.querySelector("#length-display");
+      const widthDisplay = document.querySelector("#width-display");
+      const heightDisplay = document.querySelector("#height-display");
+      const actualWeightDisplay = document.querySelector("#actual-weight-display");
+      lengthDisplay.textContent = lengthInput.value || "0";
+      widthDisplay.textContent = widthInput.value || "0";
+      heightDisplay.textContent = heightInput.value || "0";
+      actualWeightDisplay.textContent = actualWeightInput.value || "0";
+      const actualWeight = parseInputValue(actualWeightInput.value);
+      const weightUnit = getWeightUnit();
+      const isPounds = weightUnit === "lbs";
+      const isOunces = weightUnit === "oz";
+      if (actualWeight !== null) {
+        const formattedActualWeight = displayExactActualWeight(actualWeight, isPounds);
+        document.querySelector("#actual-weight-ups").textContent = formattedActualWeight;
+        document.querySelector("#actual-weight-fedex").textContent = formattedActualWeight;
+        document.querySelector("#actual-weight-firstmile").textContent = formattedActualWeight;
+        document.querySelector("#actual-weight-usps").textContent = formattedActualWeight;
+        if (isPounds) {
+          const length = parseInputValue(lengthInput.value);
+          const width = parseInputValue(widthInput.value);
+          const height = parseInputValue(heightInput.value);
+          if (length !== null && width !== null && height !== null) {
+            const cubicSize = length * width * height;
+            const dimWeightUSPS = calculateDimensionalWeight(cubicSize, 166);
+            const billedWeightUSPS = calculateUSPSFirstmileBilledWeight(
+              actualWeight,
+              dimWeightUSPS,
+              cubicSize,
+              isPounds
+            );
+            const billedWeightFirstmile = calculateUSPSFirstmileBilledWeight(
+              actualWeight,
+              dimWeightUSPS,
+              cubicSize,
+              isPounds
+            );
+            document.querySelector("#dim-weight-usps").textContent = `${dimWeightUSPS} lbs`;
+            document.querySelector("#dim-weight-firstmile").textContent = `${dimWeightUSPS} lbs`;
+            document.querySelector("#billed-weight-usps").textContent = `${billedWeightUSPS} lbs`;
+            document.querySelector("#billed-weight-firstmile").textContent = `${billedWeightFirstmile} lbs`;
+          }
+        }
+      }
+    };
+    document.querySelector('input[name="length"]').addEventListener("input", updateDisplay);
+    document.querySelector('input[name="width"]').addEventListener("input", updateDisplay);
+    document.querySelector('input[name="height"]').addEventListener("input", updateDisplay);
+    document.querySelector('input[name="actual-weight"]').addEventListener("input", updateDisplay);
+  });
+})();
+//# sourceMappingURL=index.js.map
