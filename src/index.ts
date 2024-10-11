@@ -16,9 +16,12 @@ window.Webflow.push(() => {
     return isNaN(parsedValue) ? null : parsedValue;
   };
 
-  // Function to display exact actual weight based on the unit
-  const displayExactActualWeight = (weight, isPounds) => {
-    return isPounds ? `${weight} lbs` : `${weight} oz`; // Display exact value in lbs or oz
+  // Function to format actual weight based on the unit
+  const formatActualWeight = (weight, isPounds) => {
+    if (isPounds) {
+      return `${Math.ceil(weight)} lbs`;
+    }
+    return `${Math.ceil(weight)} oz`; // Always round up if it's in ounces
   };
 
   // Function to convert ounces to pounds
@@ -64,6 +67,14 @@ window.Webflow.push(() => {
     return roundUpToNearestPound(Math.max(actualWeight, dimWeight)); // Always use the greater value
   };
 
+  // Function to scroll to the table with ID 'table'
+  const scrollToTable = () => {
+    const table = document.querySelector('#table');
+    if (table) {
+      table.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   // Event listener for form submission
   form.addEventListener('submit', (e) => {
     // Prevent form submission and propagation
@@ -96,10 +107,8 @@ window.Webflow.push(() => {
       return;
     }
 
-    // Convert ounces to pounds if necessary
-    let displayedWeight = actualWeightInput;
+    // Convert ounces to pounds if necessary and round up to nearest pound
     if (isOunces) {
-      displayedWeight = actualWeightInput; // Keep the input value as ounces for display purposes
       actualWeightInput = convertOuncesToPounds(actualWeightInput);
     }
     actualWeightInput = roundUpToNearestPound(actualWeightInput);
@@ -119,12 +128,8 @@ window.Webflow.push(() => {
     // Calculate dimensional weight for each carrier
     const dimWeightUPS = calculateDimensionalWeight(cubicSize, 139);
     const dimWeightFedEx = calculateDimensionalWeight(cubicSize, 139);
-    const dimWeightUSPS = isOunces ? 'N/A' : calculateDimensionalWeight(cubicSize, 166); // 'N/A' if ounces selected for FM/USPS
-    const dimWeightFirstmile = isOunces ? 'N/A' : calculateDimensionalWeight(cubicSize, 166); // 'N/A' if ounces selected for FM/USPS
-
-    // **NEW: Always calculate Dimensional Weight for UPS and FedEx**
-    const displayedDimWeightUPS = `${dimWeightUPS} lbs`; // Show the dim weight for UPS
-    const displayedDimWeightFedEx = `${dimWeightFedEx} lbs`; // Show the dim weight for FedEx
+    const dimWeightUSPS = calculateDimensionalWeight(cubicSize, 166);
+    const dimWeightFirstmile = calculateDimensionalWeight(cubicSize, 166);
 
     // Calculate billed weight for each carrier
     const billedWeightUSPS = calculateUSPSFirstmileBilledWeight(
@@ -154,36 +159,32 @@ window.Webflow.push(() => {
     result.textContent = 'Dimensional Weight has been calculated on the table.';
 
     // Update the table with the actual weight, dimensional weight, and billed weight for each carrier
-    document.querySelector('#actual-weight-ups').textContent = displayExactActualWeight(
-      displayedWeight,
+    document.querySelector('#actual-weight-ups').textContent = formatActualWeight(
+      actualWeightInput,
       isPounds
     );
-    document.querySelector('#dim-weight-ups').textContent = displayedDimWeightUPS; // Always display Dim Weight for UPS
+    document.querySelector('#dim-weight-ups').textContent = `${dimWeightUPS} lbs`;
     document.querySelector('#billed-weight-ups').textContent = `${billedWeightUPS} lbs`;
 
-    document.querySelector('#actual-weight-fedex').textContent = displayExactActualWeight(
-      displayedWeight,
+    document.querySelector('#actual-weight-fedex').textContent = formatActualWeight(
+      actualWeightInput,
       isPounds
     );
-    document.querySelector('#dim-weight-fedex').textContent = displayedDimWeightFedEx; // Always display Dim Weight for FedEx
+    document.querySelector('#dim-weight-fedex').textContent = `${dimWeightFedEx} lbs`;
     document.querySelector('#billed-weight-fedex').textContent = `${billedWeightFedEx} lbs`;
 
-    document.querySelector('#actual-weight-firstmile').textContent = displayExactActualWeight(
-      displayedWeight,
+    document.querySelector('#actual-weight-firstmile').textContent = formatActualWeight(
+      actualWeightInput,
       isPounds
     );
-    document.querySelector('#dim-weight-firstmile').textContent = isOunces
-      ? 'N/A'
-      : `${dimWeightFirstmile} lbs`; // N/A if ounces
+    document.querySelector('#dim-weight-firstmile').textContent = `${dimWeightFirstmile} lbs`;
     document.querySelector('#billed-weight-firstmile').textContent = `${billedWeightFirstmile} lbs`;
 
-    document.querySelector('#actual-weight-usps').textContent = displayExactActualWeight(
-      displayedWeight,
+    document.querySelector('#actual-weight-usps').textContent = formatActualWeight(
+      actualWeightInput,
       isPounds
     );
-    document.querySelector('#dim-weight-usps').textContent = isOunces
-      ? 'N/A'
-      : `${dimWeightUSPS} lbs`; // N/A if ounces
+    document.querySelector('#dim-weight-usps').textContent = `${dimWeightUSPS} lbs`;
     document.querySelector('#billed-weight-usps').textContent = `${billedWeightUSPS} lbs`;
 
     // Console log outputs for checking
@@ -194,6 +195,9 @@ window.Webflow.push(() => {
     console.log(`Billed Weight (Firstmile): ${billedWeightFirstmile} lbs`);
     console.log(`Billed Weight (UPS): ${billedWeightUPS} lbs`);
     console.log(`Billed Weight (FedEx): ${billedWeightFedEx} lbs`);
+
+    // Scroll to the results table
+    scrollToTable();
   });
 
   // Function to update the display values in real-time
@@ -220,7 +224,7 @@ window.Webflow.push(() => {
     const isOunces = weightUnit === 'oz';
 
     if (actualWeight !== null) {
-      const formattedActualWeight = displayExactActualWeight(actualWeight, isPounds);
+      const formattedActualWeight = formatActualWeight(actualWeight, isPounds);
       document.querySelector('#actual-weight-ups').textContent = formattedActualWeight;
       document.querySelector('#actual-weight-fedex').textContent = formattedActualWeight;
       document.querySelector('#actual-weight-firstmile').textContent = formattedActualWeight;
@@ -263,4 +267,6 @@ window.Webflow.push(() => {
   document.querySelector('input[name="width"]').addEventListener('input', updateDisplay);
   document.querySelector('input[name="height"]').addEventListener('input', updateDisplay);
   document.querySelector('input[name="actual-weight"]').addEventListener('input', updateDisplay);
+
+  console.log('Build test:', new Date().toISOString());
 });
